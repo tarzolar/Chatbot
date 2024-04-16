@@ -17,7 +17,7 @@ from nltk.stem import PorterStemmer
 nltk.download('punkt')
 
 # Importing the data set
-df = pd.read_csv(r"ChatbotTraining.csv")
+df = pd.read_csv(r"C:\Users\HP\Downloads\Chatbot\ChatbotTraining.csv")
 label_encoder = LabelEncoder()
 df['tag'] = label_encoder.fit_transform(df['tag'])
 y = df['tag']
@@ -83,13 +83,14 @@ for pattern in X:
 epochs = 10
 learning_rate = 0.3
 input_nodes = len(words)
-hidden_nodes = 512
+hidden_nodes = 100
 output_nodes = len(y[0].unique())
 
 # Weights matrix with random values
-w_ih = np.random.uniform(-0.5, 0.5, size=(hidden_nodes, input_nodes))
-w_ho = np.random.uniform(-0.5, 0.5, size=(output_nodes, hidden_nodes))
 
+np.random.seed = 42
+w_ih = np.random.uniform(-0.01, 0.01, size=(hidden_nodes, input_nodes))
+w_ho = np.random.uniform(-0.01, 0.01, size=(output_nodes, hidden_nodes))
 w_ihs = w_ih
 w_hos = w_ho
 
@@ -167,67 +168,53 @@ def test(X_test, y_test, w_ih, w_ho):
     performance = sum(correct)/len(X_test)
     return performance
  
-# Learning rate optimization   
-learning_rates = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]        
-performances_for_rates = []
+learning_rates = [0.01,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9]  
+epochs_ = [1,2,3,5,10,20]
+rates_and_epochs = []
+performances = []
 
 for rate in learning_rates:
-    for i in range(len(X_train)):
-        target_vector = np.zeros(output_nodes)
-        target_vector[int(y_train.iloc[i])] = 0.99
-        train(bag_of_words(X_train.iloc[i], words), target_vector, w_ih, w_ho, rate)
-            
-    performances_for_rates.append(test(X_test, y_test, w_ih, w_ho))
-    w_ih = w_ihs
-    w_iho = w_hos
-    print(f"Training rate "+str(rate))
-        
-plt.plot(learning_rates, performances_for_rates)
-plt.xlabel('Learning rates')
-plt.ylabel('Performance')
-plt.title('Performance vs. Learning rates')
-plt.show()        
-print()
-print(f"Optimal learning rate:"+str(learning_rates[np.argmax(performances_for_rates)]))
-print()
+    for epoch in epochs_:
+        print(f"Training for learning rate {rate} and number of epochs {epoch}")
+        rates_and_epochs.append((rate, epoch))
+        for e in range(epoch):
+            for i in range(len(X_train)):
+                target_vector = np.zeros(output_nodes)
+                target_vector[int(y_train.iloc[i])] = 0.99
+                train(bag_of_words(X_train.iloc[i],words), target_vector, w_ih, w_ho, rate)
+        performances.append(test(X_test,y_test,w_ih,w_ho))
+        w_ih = w_ihs
+        w_ho = w_hos
 
-# Epochs number optimization
-epochs_ = [1,2,3,5,10,20]
-performances_for_epochs = []
+print(len(performances))
+optimal_rate = rates_and_epochs[np.argmax(performances)][0]
+optimal_epochs = rates_and_epochs[np.argmax(performances)][1]
 
-for epoch in epochs_:
-    for e in range(epoch):
-        for i in range(len(X_train)):
-            target_vector = np.zeros(output_nodes)
-            target_vector[int(y_train.iloc[i])] = 0.99
-            train(bag_of_words(X_train.iloc[i], words), target_vector, w_ih, w_ho, 0.3)
-
-    performances_for_epochs.append(test(X_test, y_test, w_ih, w_ho)) 
-    w_ih = w_ihs
-    w_ho = w_hos
-    print("Training epoch: "+str(epoch))
-        
-plt.plot(epochs_, performances_for_epochs)
-plt.xlabel('Number of epochs')
-plt.ylabel('Performance')
-plt.title('Performance vs. Number of epochs')
-plt.show()        
 print()
-print(f"Optimal number of epochs:"+str(epochs_[np.argmax(performances_for_epochs)]))       
+print(f"Optimal learning rate {optimal_rate} - Optimal number of epochs {optimal_epochs}")
 print()
-
 # Training with the optimal learning rate and number of epochs
 print("Starting Training")
-for e in range(epochs_[np.argmax(performances_for_epochs)]):
+for e in range(optimal_epochs):
     for i in range(len(X)):
         target_vector = np.zeros(output_nodes)
         target_vector[int(y.iloc[i])] = 0.99
-        train(bag_of_words(X.iloc[i], words), target_vector, w_ih, w_ho, learning_rates[np.argmax(performances_for_rates)])
+        train(bag_of_words(X.iloc[i], words), target_vector, w_ih, w_ho, optimal_rate)
 print("Training Finished")
 print()
 model_performance = test(X_test, y_test, w_ih, w_ho)
-print("Model performance: "+str(model_performance))
+print(f"Model performance: {model_performance}")
 print()
+
+performances = np.array(performances).reshape(len(learning_rates), len(epochs_))
+plt.imshow(performances, cmap='coolwarm')
+plt.xlabel('Number of Epochs')
+plt.ylabel('Learning Rates')
+plt.xticks(np.arange(len(epochs_)), epochs_)
+plt.yticks(np.arange(len(learning_rates)), learning_rates)
+plt.colorbar(label='Performance')
+plt.title('Performances Heatmap')
+plt.show()
 
 # Chatbot
 while(True):
@@ -236,7 +223,7 @@ while(True):
      df_r = df[df['tag'] == np.argmax(feedforward(bag_of_words(user,words),w_ih, w_ho)[0])]
      response = df_r['responses'].sample().values[0]
      print("Chatbot:")
-     for letra in response:
-         print(letra, end='', flush=True)  
+     for leter in response:
+         print(leter, end='', flush=True)  
          time.sleep(0.05) 
      print()
