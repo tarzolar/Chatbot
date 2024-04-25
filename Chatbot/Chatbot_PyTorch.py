@@ -18,6 +18,7 @@ from nltk.stem import PorterStemmer
 nltk.download('punkt')
 
 df = pd.read_csv(r"C:\Users\HP\Downloads\Chatbot\ChatbotTraining.csv")
+df = df.sample(frac=1).reset_index(drop=True)
 label_encoder = LabelEncoder()
 df['tag'] = label_encoder.fit_transform(df['tag'])
 y = df['tag']
@@ -93,9 +94,10 @@ class NN(nn.Module):
         self.flatten = nn.Flatten()
         self.network = nn.Sequential(
             nn.Linear(input_nodes, hidden_nodes),
-            nn.Sigmoid(),
+            nn.LeakyReLU(),
+            nn.Linear(hidden_nodes, hidden_nodes),
+            nn.LeakyReLU(),
             nn.Linear(hidden_nodes, output_nodes),
-            nn.Sigmoid(),
             )
         
     def forward(self, x):
@@ -176,7 +178,7 @@ model = NN(input_nodes, hidden_nodes, output_nodes)
 loss_function = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=optimal_rate) 
 
-
+print()
 for epoch in range(optimal_epochs):
     print(f"Training Epoch {epoch}")
     for idx, (data, labels) in enumerate(train_loader):
@@ -196,7 +198,17 @@ model = NN(input_nodes, hidden_nodes, output_nodes)
 loss_function = nn.CrossEntropyLoss()
 optimizer = optim.SGD(model.parameters(), lr=optimal_rate) 
 
+performances = np.array(performances).reshape(len(learning_rates), len(epochs_))
+plt.imshow(performances, cmap='coolwarm')
+plt.xlabel('Number of Epochs')
+plt.ylabel('Learning Rates')
+plt.xticks(np.arange(len(epochs_)), epochs_)
+plt.yticks(np.arange(len(learning_rates)), learning_rates)
+plt.colorbar(label='Performance')
+plt.title('Performances Heatmap')
+plt.show()
 
+print()
 for epoch in range(optimal_epochs):
     print(f"Training Epoch {epoch}")
     for idx, (data, labels) in enumerate(dataloader):
@@ -208,16 +220,6 @@ for epoch in range(optimal_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
-performances = np.array(performances).reshape(len(learning_rates), len(epochs_))
-plt.imshow(performances, cmap='coolwarm')
-plt.xlabel('Number of Epochs')
-plt.ylabel('Learning Rates')
-plt.xticks(np.arange(len(epochs_)), epochs_)
-plt.yticks(np.arange(len(learning_rates)), learning_rates)
-plt.colorbar(label='Performance')
-plt.title('Performances Heatmap')
-plt.show()
 
 
 # Chatbot
